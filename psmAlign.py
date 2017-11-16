@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 from itertools import islice
+import random
 
 class PSM:
     psm_id=0
@@ -19,11 +20,11 @@ class PSM:
     matched_fragment_ions=0
     p_value=0
     e_value=0
-    protein_taget_decoy="None"
+    protein_flag="None"
     def __init__(self, psm_id, spectra_id, peaks, charge, precursor_mass, protein_id,protein_name, protein_mass,
         first_residue,last_residue,modification_number, matched_peaks, matched_fragment_ions, p_value,e_value,protein_flag):
         self.psm_id=psm_id
-        self.spectra_id=spectra_id
+        self.spectra_id=int(spectra_id)
         self.peaks=peaks
         self.charge=charge
         self.precursor_mass=precursor_mass
@@ -37,9 +38,20 @@ class PSM:
         self.matched_fragment_ions=float(matched_fragment_ions)
         self.p_value=float(p_value)
         self.e_value=float(e_value)
-        self.protein_taget_decoy=protein_flag
+        self.protein_flag=protein_flag
     def __cmp__(self,other):  
         return cmp(self.matched_peaks, other.matched_peaks)  
+def calFDR(psm_list,num):
+    target_num=0
+    decoy_num=0
+    for psm in psm_list:
+        if psm.protein_flag=="target":
+            target_num+=1
+        else:
+            decoy_num+=1
+        fdr=float(decoy_num)/float(num)
+        if fdr<0.01:
+            print "FDR:",fdr,"target number:",target_num,"shared peaks:",psm.matched_peaks
 def readPSM():
     psm_list=list()
     input_file_path = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table_FDR.txt.pre"
@@ -52,8 +64,13 @@ def readPSM():
         psm_list.append(psm)
     print "number of psm:",len(psm_list)
     psm_list.sort(reverse=True)
-    print psm_list[0].matched_peaks,psm_list[len(psm_list)-1].matched_peaks
-
+    for i in range(0,10):
+        print psm_list[i].spectra_id
+    calFDR(psm_list,len(psm_list))
 
 if __name__ == "__main__":
-    readPSM()   
+    sss="abc"
+    li=list(sss)
+    random.shuffle(li)
+    sre="".join(li)
+    print sss,sre
