@@ -50,8 +50,8 @@ def init_para(scans,activitation,mz,charge,mass):
     mass=0
 ##数据转化为ma-align+格式
 def processSpectra():
-    spectra_file=unicode("C:\Users\Administrator\Desktop\msalign+\msinput\Yeast_12_1_msdeconv.msalign", "utf-8")
-    out_file="C:\Users\Administrator\Desktop\msalign+\msinput\Ecoli_spectra.msalign"
+    spectra_file=unicode("C:\Users\Administrator\Desktop\msalign+\msinput\ST_spectra_original.msalign", "utf-8")
+    out_file="C:\Users\Administrator\Desktop\msalign+\msinput\ST_spectra.msalign"
     f = open(out_file, "w")
     spectra_number=0
     scans=0
@@ -111,4 +111,4 @@ def align2SVMFmat():
     output_file.close
 
 if __name__ == "__main__":
-    processResult()
+    processSpectra()

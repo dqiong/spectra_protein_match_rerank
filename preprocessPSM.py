@@ -16,8 +16,13 @@ from numpy import *
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn import datasets as ds
-from sklearn.metrics import accuracy_score
+import sklearn.metrics as skMetrics
 from sklearn.model_selection import GridSearchCV
+from sklearn.cross_validation import train_test_split  
+
+from sklearn import preprocessing 
+from sklearn.feature_selection import RFE  
+from sklearn.feature_selection import RFECV 
 
 
 def preprocess():
@@ -107,26 +112,36 @@ def svm():
     for i in range(0, len(p_label)):
          f.write(str(p_label[i]) + " " + str(p_val[i][0]) +" " + str(p_val[i][1]) + "\n")
     f.close
-    
-def LR():
-    x_train,y_train=ds.load_svmlight_file(unicode(train_file, "utf-8"))  
-    x_test,y_test=ds.load_svmlight_file(unicode(test_file, "utf-8"))
-    classifier=LogisticRegression()
-    param_grid=[{'C':[1,10,100,1000],'penalty':['l1','l2']}]
-    clf=GridSearchCV(classifier,param_grid)
-    clf.fit(x_train,y_train)
-    print clf.best_estimator_
-    #y_pred=classifier.predict(x_train)
-    print accuracy_score(y_train, y_pred)
 
-def countProtiens():
-    protien_file=unicode("E:\快盘\研二文件\模板\data数据论文\Ecoli\Ecoli.fasta", "utf-8")
-    protein_number=0
-    for line in open(protien_file,"r"):
-        if line[0]==">":
-            protein_number+=1
-    print "protein numbers:",protein_number
+def libsvm(input_file):
+    #rate, param = find_parameters('train.1.scale','-log2c -3,3,1 -log2g -3,3,1')
+    # print rate,param
+    y, x = svm_read_problem(unicode(input_file, "utf-8"))  # 读取自带数据
+    print "read data over",  datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.4, random_state=42)
+
+    print "train begin", datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    m = svm_train(y_train, x_train, '-c 1.0 -g 8.0 -b 1')
+    print "train end",  datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    p_label, p_acc, p_val = svm_predict(y_test, x_test, m, '-b 1')
+    ACC, MSE, SCC = evaluations(y_test, p_label)
+     
+def LR(input_file):
+    x_,y_=ds.load_svmlight_file(unicode(input_file, "utf-8")) 
+    x_=  preprocessing.MaxAbsScaler().fit_transform(x_)
+    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.4, random_state=42)
+    lr=LogisticRegression(penalty='l2', C=1.0, solver='liblinear')
+   # param_grid=[{'C':[1,10,20],'penalty':['l1','l2']}]
+    #clf=GridSearchCV(lr,param_grid)
+   # print clf.best_estimator_
+    rfe = RFECV(estimator=lr, step=1)
+    rfe.fit(x_train,y_train)
+    y_pred=rfe.predict(x_test)
+    y_probality=rfe.predict_proba(x_test)
+    print skMetrics.accuracy_score(y_test, y_pred)
 
 
 if __name__ == "__main__":
-    countProtiens()
+    input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
+    libsvm(input_path)

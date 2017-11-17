@@ -3,6 +3,7 @@
 
 from itertools import islice
 import random
+import preprocessPSM as psmRerank
 
 class PSM:
     psm_id=0
@@ -40,37 +41,63 @@ class PSM:
         self.e_value=float(e_value)
         self.protein_flag=protein_flag
     def __cmp__(self,other):  
-        return cmp(self.matched_peaks, other.matched_peaks)  
+        return cmp(self.e_value, other.e_value)  
+
 def calFDR(psm_list,num):
     target_num=0
     decoy_num=0
     for psm in psm_list:
-        if psm.protein_flag=="target":
-            target_num+=1
-        else:
+        if psm.protein_flag=="decoy":
             decoy_num+=1
+        else:
+            target_num+=1
         fdr=float(decoy_num)/float(num)
-        if fdr<0.01:
-            print "FDR:",fdr,"target number:",target_num,"shared peaks:",psm.matched_peaks
-def readPSM():
-    psm_list=list()
-    input_file_path = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table_FDR.txt.pre"
+        if fdr<0.02:
+            print "FDR:",fdr,"target number:",target_num
+
+def readPSM(input_file_path,psm_list):
     input_file = open(unicode(input_file_path, "utf-8"), "r")
     for line in islice(input_file, 1, None):
-        tokens = line.strip().replace(" ", "\t").split("\t")
+        tokens = line.strip().split("\t")
         protein_flag=tokens[9].split("_")[0]
+        if protein_flag!="decoy":
+            protein_flag="target"
         psm=PSM(tokens[1],tokens[2],tokens[4],tokens[5],tokens[6],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[14],tokens[15],tokens[16],
         tokens[17],tokens[18],protein_flag)
         psm_list.append(psm)
+
+def readTargetAndDecoy(input_file_path_target,input_file_path_decoy,psm_list):
+    readPSM(input_file_path_target,psm_list)
+    readPSM(input_file_path_decoy,psm_list)
     print "number of psm:",len(psm_list)
-    psm_list.sort(reverse=True)
+    psm_list.sort()
     for i in range(0,10):
-        print psm_list[i].spectra_id
+        print psm_list[i].e_value
     calFDR(psm_list,len(psm_list))
 
+def align2SVMFormat(psm_list,out_path):
+    output_file = file(unicode(out_path, "utf-8"), "w+")
+    for psm in psm_list:
+        if psm.protein_flag=="decoy":
+            new_line="0"
+        else:
+            new_line="1"
+        new_line+=(" "+"1:"+str(psm.peaks)+" 2:"+str(psm.charge)+" 3:"+str(psm.precursor_mass)+" 4:"+str(psm.protein_mass)+
+         " 5:"+str(psm.first_residue)+" 6:"+str(psm.last_residue)+" 7:"+str(psm.modification_number)+" 8:"+str(psm.matched_peaks)+
+         " 9:"+str(psm.matched_fragment_ions)+" 10:"+str(psm.p_value)+" 11:"+str(psm.e_value)+"\n")
+        output_file.write(new_line)
+    output_file.close
+
+def initPara():
+    psm_list=list()
+    input_file_path_target = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table.txt"
+    input_file_path_decoy = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table_decoy.txt"
+    readTargetAndDecoy(input_file_path_target,input_file_path_decoy,psm_list)
+    svmFormat_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
+    align2SVMFormat(psm_list,svmFormat_path)
+    return svmFormat_path
+
 if __name__ == "__main__":
-    sss="abc"
-    li=list(sss)
-    random.shuffle(li)
-    sre="".join(li)
-    print sss,sre
+    #input_path=initPara()
+    input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
+    psmRerank.LR(input_path)
