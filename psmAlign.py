@@ -46,21 +46,31 @@ class PSM:
 def calFDR(psm_list,num):
     target_num=0
     decoy_num=0
+    res=0
+    FDR_bound=0.1
+    psm_list.sort()
+    print "the number of PSM:",num
     for psm in psm_list:
+        print psm.e_value
         if psm.protein_flag=="decoy":
             decoy_num+=1
         else:
             target_num+=1
         fdr=float(decoy_num)/float(num)
-        if fdr<0.02:
-            print "FDR:",fdr,"target number:",target_num
+        if fdr<FDR_bound:
+            res=target_num
+        if fdr>FDR_bound:
+            break
+    print "Align+ FDR:",FDR_bound,"target number:",res
 
 def readPSM(input_file_path,psm_list):
     input_file = open(unicode(input_file_path, "utf-8"), "r")
     for line in islice(input_file, 1, None):
         tokens = line.strip().split("\t")
         protein_flag=tokens[9].split("_")[0]
-        if protein_flag!="decoy":
+        if protein_flag=="decoy" or protein_flag=="DECOY":
+            protein_flag="decoy"
+        else:
             protein_flag="target"
         psm=PSM(tokens[1],tokens[2],tokens[4],tokens[5],tokens[6],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[14],tokens[15],tokens[16],
         tokens[17],tokens[18],protein_flag)
@@ -99,5 +109,9 @@ def initPara():
 
 if __name__ == "__main__":
     #input_path=initPara()
-    input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
-    psmRerank.LR(input_path)
+    input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_result_table_FDR.txt.pre"
+    # input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
+    psm_list=list()
+    readPSM(input_path,psm_list)
+    calFDR(psm_list,len(psm_list))
+    #psmRerank.LR(input_path)
