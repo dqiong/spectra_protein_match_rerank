@@ -47,21 +47,25 @@ def calFDR(psm_list,num):
     target_num=0
     decoy_num=0
     res=0
-    FDR_bound=0.1
+    FDR_bound_list=[0.01,0.02,0.03,0.05,0.08,0.1]
     psm_list.sort()
     print "the number of PSM:",num
-    for psm in psm_list:
-        print psm.e_value
-        if psm.protein_flag=="decoy":
-            decoy_num+=1
-        else:
-            target_num+=1
-        fdr=float(decoy_num)/float(num)
-        if fdr<FDR_bound:
-            res=target_num
-        if fdr>FDR_bound:
-            break
-    print "Align+ FDR:",FDR_bound,"target number:",res
+    for FDR_bound in FDR_bound_list:
+        target_num=0
+        decoy_num=0
+        res=0
+        for psm in psm_list:
+            if psm.protein_flag=="decoy":
+                decoy_num+=1
+            else:
+                target_num+=1
+            fdr=float(decoy_num)/float(num)
+            if fdr<FDR_bound:
+                res=target_num
+            if fdr>FDR_bound:
+                break
+        print "MS-align+"," FDR:",FDR_bound,"target number:",res
+
 
 def readPSM(input_file_path,psm_list):
     input_file = open(unicode(input_file_path, "utf-8"), "r")
@@ -80,9 +84,6 @@ def readTargetAndDecoy(input_file_path_target,input_file_path_decoy,psm_list):
     readPSM(input_file_path_target,psm_list)
     readPSM(input_file_path_decoy,psm_list)
     print "number of psm:",len(psm_list)
-    psm_list.sort()
-    for i in range(0,10):
-        print psm_list[i].e_value
     calFDR(psm_list,len(psm_list))
 
 def align2SVMFormat(psm_list,out_path):
@@ -103,15 +104,17 @@ def initPara():
     input_file_path_target = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table.txt"
     input_file_path_decoy = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table_decoy.txt"
     readTargetAndDecoy(input_file_path_target,input_file_path_decoy,psm_list)
-    svmFormat_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
-    align2SVMFormat(psm_list,svmFormat_path)
-    return svmFormat_path
+   # svmFormat_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
+   # align2SVMFormat(psm_list,svmFormat_path)
+   # return svmFormat_path
 
 if __name__ == "__main__":
-    #input_path=initPara()
+    initPara()
+    #test ST data
+    '''
     input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_result_table_FDR.txt.pre"
-    # input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format.txt"
     psm_list=list()
     readPSM(input_path,psm_list)
     calFDR(psm_list,len(psm_list))
+    '''
     #psmRerank.LR(input_path)

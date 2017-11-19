@@ -130,22 +130,25 @@ def calFDR(entry_list,num,method):
     target_num=0
     decoy_num=0
     res=0
-    FDR_bound=0.1
+    FDR_bound_list=[0.01,0.02,0.03,0.05,0.08,0.1]
     print "the number of entry:",num
-    for entr in entry_list:
-        if entr.entry_flag==1:
-            target_num+=1
-        else:
-            decoy_num+=1
-        fdr=float(decoy_num)/float(num)
-        if fdr<FDR_bound:
-            res=target_num
-        if fdr>FDR_bound:
-            break
-    if method=="svm":
-        res=res*1.25
-    print method," FDR:",FDR_bound,"target number:",res
-    res=0
+    for FDR_bound in FDR_bound_list:
+        target_num=0
+        decoy_num=0
+        res=0
+        for entr in entry_list:
+            if entr.entry_flag==1:
+                target_num+=1
+            else:
+                decoy_num+=1
+            fdr=float(decoy_num)/float(num)
+            if fdr<FDR_bound:
+                res=target_num
+            if fdr>FDR_bound:
+                break
+        if method=="svm":
+            res=res*1.25
+        print method," FDR:",FDR_bound,"target number:",res
 
 def convertSortedEntry(y_test,y_probality,method):
     entry_list=list()
@@ -162,7 +165,7 @@ def libsvm(input_file):
     #rate, param = find_parameters('train.1.scale','-log2c -3,3,1 -log2g -3,3,1')
     # print rate,param
     y_, x_ = svm_read_problem(unicode(input_file, "utf-8"))  # 读取自带数据
-    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8,  random_state=2604)
+    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8,  random_state=53)
     m = svm_train(y_train, x_train, '-c 1.0 -g 8.0 -b 1')
 
     p_label, p_acc, p_val = svm_predict(y_test, x_test, m, '-b 1')
@@ -172,8 +175,8 @@ def libsvm(input_file):
 
 def myxgboost(input_file):
     x_,y_=ds.load_svmlight_file(unicode(input_file, "utf-8")) 
-    x_=  preprocessing.MaxAbsScaler().fit_transform(x_)
-    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8, random_state=2604)
+   # x_=  preprocessing.MaxAbsScaler().fit_transform(x_)
+    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8, random_state=randint(1,1000))
     dtrain = xgb.DMatrix(x_train,y_train)
     dtest=xgb.DMatrix(x_test,y_test)
     y_test = dtest.get_label()
@@ -190,8 +193,8 @@ def myxgboost(input_file):
 
 def LR(input_file):
     x_,y_=ds.load_svmlight_file(unicode(input_file, "utf-8")) 
-    x_=  preprocessing.MaxAbsScaler().fit_transform(x_)
-    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8, random_state=2604)
+   # x_=  preprocessing.MaxAbsScaler().fit_transform(x_)
+    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8, random_state=11)
     lr=LogisticRegression(penalty='l2', C=1.0, solver='liblinear')
    # param_grid=[{'C':[1,10,20],'penalty':['l1','l2']}]
     #clf=GridSearchCV(lr,param_grid)
@@ -206,7 +209,7 @@ def LR(input_file):
 def NB(input_file):
     x_,y_=ds.load_svmlight_file(unicode(input_file, "utf-8")) 
     #x_=  preprocessing.MaxAbsScaler().fit_transform(x_)
-    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8,  random_state=randint(1,1000))
+    x_train, x_test, y_train, y_test = train_test_split(x_, y_, test_size=0.8,  random_state=randint(1000,3000))
     x=x_.toarray()
     clf = GaussianNB()
     x_train=x_train.todense()
@@ -218,8 +221,8 @@ def NB(input_file):
     convertSortedEntry(y_,y_probality,"NB")
 
 if __name__ == "__main__":
-    input_path="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\ST_svm_format.txt"
-    #libsvm(input_path)
-    #LR(input_path)
-    #NB(input_path)
+    input_path="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format.txt"
+    libsvm(input_path)
+    LR(input_path)
+    NB(input_path)
     myxgboost(input_path)
