@@ -27,6 +27,8 @@ from sklearn.feature_selection import RFE
 from sklearn.feature_selection import RFECV 
 from sklearn.ensemble import RandomForestClassifier
 
+import filePath as fp
+
 
 def preprocess():
     input_file_path = "E:\快盘\研三\data\yeast-01.tab"
@@ -127,7 +129,7 @@ class entry():
     def __cmp__(self,other):  
         return cmp(self.positive_pro, other.positive_pro) 
 
-def calFDR(entry_list,num,method):
+def calFDR(entry_list,num,method,fdr_list):
     target_num=0
     decoy_num=0
     res=0
@@ -147,24 +149,28 @@ def calFDR(entry_list,num,method):
                 res=target_num
             if fdr>FDR_bound:
                 break
-        print method," FDR:",FDR_bound,"target number:",res
+        fdr_list.append(res)
+        #print method," FDR:",FDR_bound,"target number:",res
 
 def convertSortedEntry(y_test,y_probality,method):
     entry_list=list()
     for i in range(0,len(y_test)):
-        if method=="xgboost" or method=="ASSMBLE":
+        if method=="xgb" or method=="ASSMBLE":
             entr=entry(y_test[i],y_probality[i],0.0)
         else:
             entr=entry(y_test[i],y_probality[i][0],y_probality[i][1])
         entry_list.append(entr)
     entry_list.sort(reverse=True)
-    calFDR(entry_list, len(entry_list),method)
+    fdr_list=list()
+    calFDR(entry_list, len(entry_list),method,fdr_list)
+    return fdr_list
 
 def libsvm(train_file,test_file):
     #rate, param = find_parameters('train.1.scale','-log2c -3,3,1 -log2g -3,3,1')
     # print rate,param
-    y_train, x_train = svm_read_problem(unicode(train_file, "utf-8"))  # 读取自带数据
+    y_train_pre, x_train_pre = svm_read_problem(unicode(train_file, "utf-8"))  # 读取自带数据
     y_test, x_test = svm_read_problem(unicode(test_file, "utf-8"))
+    x_train, x_train_left, y_train, y_train_left = train_test_split(x_train_pre, y_train_pre, test_size=0.5, random_state=randint(1,1000))
     m = svm_train(y_train, x_train, '-c 1.0 -g 8.0 -b 1')
 
     p_label, p_acc, p_val = svm_predict(y_test, x_test, m, '-b 1')
@@ -174,26 +180,29 @@ def libsvm(train_file,test_file):
     convertSortedEntry(y_test,p_val,"svm")
 
 def myxgboost(train_file,test_file):
-    x_train, y_train, x_test, y_test = ds.load_svmlight_files( (unicode(train_file, "utf-8"), unicode(test_file, "utf-8")))
+    x_train_pre, y_train_pre, x_test, y_test = ds.load_svmlight_files( (unicode(train_file, "utf-8"), unicode(test_file, "utf-8")))
+    x_train, x_train_left, y_train, y_train_left = train_test_split(x_train_pre, y_train_pre, test_size=0.5, random_state=randint(1,10000))
     #x_train =  preprocessing.MaxAbsScaler().fit_transform(x_train)
    # x_test = preprocessing.MaxAbsScaler().fit_transform(x_test)
     dtrain = xgb.DMatrix(x_train,y_train)
     dtest=xgb.DMatrix(x_test,y_test)
     y_test = dtest.get_label()
-    # specify parameters via map
     param = {'booster':'gbtree','gamma':0.1,'max_depth':6,'lambda':3, 'eta':0.01, 'silent':0, 'objective':'binary:logistic' }
     num_round = 200
     bst = xgb.train(param, dtrain, num_round)
     # make prediction
     preds = bst.predict(dtest)
     return y_test,preds
+    '''
     convertSortedEntry(y_test,preds,"xgboost")
     predictions = [round(value) for value in preds]
     accuracy = skMetrics.accuracy_score(y_test, predictions)
     print("Accuracy: %.2f%%"% (accuracy * 100.0))
+    '''
 
 def LR(train_file,test_file):
-    x_train, y_train, x_test, y_test = ds.load_svmlight_files( (unicode(train_file, "utf-8"), unicode(test_file, "utf-8")))
+    x_train_pre, y_train_pre, x_test, y_test = ds.load_svmlight_files( (unicode(train_file, "utf-8"), unicode(test_file, "utf-8")))
+    x_train, x_train_left, y_train, y_train_left = train_test_split(x_train_pre, y_train_pre, test_size=0.5, random_state=randint(1,10000))
    # x_train =  preprocessing.MaxAbsScaler().fit_transform(x_train)
    # x_test = preprocessing.MaxAbsScaler().fit_transform(x_test)
     lr=LogisticRegression(penalty='l2', C=1.0, solver='liblinear')
@@ -234,18 +243,30 @@ def RF(train_file,test_file):
     print skMetrics.accuracy_score(y_test, y_pred)
     convertSortedEntry(y_test,y_probality,"RF")
 
-if __name__ == "__main__":
-    train_path1="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format_evalue_train.txt"
-    test_path1="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format_evalue_test.txt"
-    train_path2="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format_peaks_train.txt"
-    test_path2="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format_peaks_test.txt"
-    train_path3="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format_pvalue_train.txt"
-    test_path3="C:\\Users\\Administrator\\Desktop\\msalign+\\msoutput\\Ecoli_svm_format_pvalue_test.txt"
+def repeatMethod(train_file,test_file,method):
+    res_file = file(unicode(fp.result_file, "utf-8"), "w+")
+    fdr_res=[0,0,0,0,0,0]
+    for k in range(0,100):
+        if method=="xgb":
+            y_test,pro=myxgboost(train_file,test_file)
+        elif method=="svm":
+            y_test,pro=libsvm(train_file,test_file)
+        else:
+            y_test,pro=LR(train_file,test_file)
+        print k," over............................................................."
+        fdr_list=convertSortedEntry(y_test,pro,method)
+        print fdr_list
+        for i in range(0,len(fdr_list)):
+            if fdr_list[i]>fdr_res[i]:
+                fdr_res[i]=fdr_list[i]
+        line=""
+        for number in [x*5.0/3.0 for x in fdr_list]:
+            line=line+str(int(number))+"\t"
+    res_file.write( "the result:"+line+"\n")
 
-    y1,p1=libsvm(train_path1,test_path1)
-    y2,p2=myxgboost(train_path3,test_path3)
-    y3,p3=LR(train_path3,test_path3)
+if __name__ == "__main__":
+   repeatMethod(fp.ST_file_out_evalue_train,fp.ST_file_out_evalue_test,"LR")
    # p=[p1[i][0]+p2[i]+p3[i][0] for i in range(0,len(y1))]
-    convertSortedEntry(y1,p1,"svm")
+    
     
 

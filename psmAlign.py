@@ -4,7 +4,7 @@
 from itertools import islice
 import random
 import preprocessPSM as psmRerank
-
+import filePath as fp
 class PSM:
     psm_id=0
     spectra_id=0
@@ -41,7 +41,7 @@ class PSM:
         self.e_value=float(e_value)
         self.protein_flag=protein_flag
     def __cmp__(self,other):  
-        return cmp(self.matched_peaks, other.matched_peaks)  
+        return cmp(self.e_value, other.e_value)  
 
 def calFDR(psm_list,num):
     target_num=0
@@ -69,16 +69,21 @@ def calFDR(psm_list,num):
 
 def readPSM(input_file_path,psm_list):
     input_file = open(unicode(input_file_path, "utf-8"), "r")
+    dec_num=0
+    tar_num=0
     for line in islice(input_file, 1, None):
         tokens = line.strip().split("\t")
         protein_flag=tokens[9].split("_")[0]
         if protein_flag=="decoy" or protein_flag=="DECOY":
             protein_flag="decoy"
+            dec_num+=1
         else:
             protein_flag="target"
+            tar_num+=1
         psm=PSM(tokens[1],tokens[2],tokens[4],tokens[5],tokens[6],tokens[8],tokens[9],tokens[10],tokens[11],tokens[12],tokens[14],tokens[15],tokens[16],
         tokens[17],tokens[18],protein_flag)
         psm_list.append(psm)
+    print "decoy:",dec_num," target:",tar_num
 
 def readTargetAndDecoy(input_file_path_target,input_file_path_decoy,psm_list):
     readPSM(input_file_path_target,psm_list)
@@ -111,14 +116,14 @@ def initPara():
 def splitTrainAndTest(input_path,svmFormat_train_path,svmFormat_test_path,rank_feature):
     psm_list=list()
     readPSM(input_path,psm_list)
-    psm_list.sort(reverse=True)
+    psm_list.sort()
     output_train = file(unicode(svmFormat_train_path, "utf-8"), "w+")
     output_test = file(unicode(svmFormat_test_path, "utf-8"), "w+")
     length=len(psm_list)
-    psm_train=psm_list[0:int(length*0.1)]+psm_list[int(length*0.9):length]
+    psm_train=psm_list[0:int(length*0.2)]+psm_list[int(length*0.8):length]
     i=0
     for psm in psm_train:
-        if(i<int(length*0.1)):
+        if(i<int(length*0.2)):
             new_line="1"
         else:
             new_line="0"
@@ -133,7 +138,7 @@ def splitTrainAndTest(input_path,svmFormat_train_path,svmFormat_test_path,rank_f
             new_line+=(" 8:"+str(psm.matched_peaks)+" 9:"+str(psm.matched_fragment_ions)+" 10:"+str(psm.e_value)+"\n")
         output_train.write(new_line)
     output_train.close
-    for psm in psm_list[int(length*0.1):int(length*0.9)]:
+    for psm in psm_list[int(length*0.2):int(length*0.8)]:
         if psm.protein_flag.lower()=="decoy":
             new_line="0"
         else:
@@ -150,29 +155,14 @@ def splitTrainAndTest(input_path,svmFormat_train_path,svmFormat_test_path,rank_f
     output_test.close
 
 if __name__ == "__main__":
-    #test ST data
-    '''
-    input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table.txt"
+
+    input_path="C:\Users\Administrator\Desktop\msalign+\msoutput\H2A_result_table_FDR.txt.pre"
     psm_list=list()
     readPSM(input_path,psm_list)
     calFDR(psm_list,len(psm_list))
-    '''
-    ST_file = "C:\Users\Administrator\Desktop\msalign+\msoutput\ST_result_table_FDR.txt.pre"
-    ST_file_out_evalue_train="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_svm_format_evalue_train.txt"
-    ST_file_out_evalue_test="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_svm_format_evalue_test.txt"
-    ST_file_out_pvalue_train="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_svm_format_pvalue_train.txt"
-    ST_file_out_pvalue_test="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_svm_format_pvalue_test.txt"
-    ST_file_out_peaks_train="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_svm_format_peaks_train.txt"
-    ST_file_out_peaks_test="C:\Users\Administrator\Desktop\msalign+\msoutput\ST_svm_format_peaks_test.txt"
+    
 
-    Ecoli_file = "C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_result_table.txt"
-    Ecoli_file_out_evalue_train="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format_evalue_train.txt"
-    Ecoli_file_out_evalue_test="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format_evalue_test.txt"
-    Ecoli_file_out_pvalue_train="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format_pvalue_train.txt"
-    Ecoli_file_out_pvalue_test="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format_pvalue_test.txt"
-    Ecoli_file_out_peaks_train="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format_peaks_train.txt"
-    Ecoli_file_out_peaks_test="C:\Users\Administrator\Desktop\msalign+\msoutput\Ecoli_svm_format_peaks_test.txt"
-
-    splitTrainAndTest(Ecoli_file,Ecoli_file_out_peaks_train,Ecoli_file_out_peaks_test,"peaks")
+    #splitTrainAndTest(fp.ST_file,fp.ST_file_out_evalue_train,fp.ST_file_out_evalue_test,"e_value")
+   # splitTrainAndTest(Ecoli_file,Ecoli_file_out_peaks_train,Ecoli_file_out_peaks_test,"peaks")
     #psmRerank.LR(input_path)
    

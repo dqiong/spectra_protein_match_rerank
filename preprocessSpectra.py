@@ -50,8 +50,8 @@ def init_para(scans,activitation,mz,charge,mass):
     mass=0
 ##数据转化为ma-align+格式
 def processSpectra():
-    spectra_file=unicode("C:\Users\Administrator\Desktop\msalign+\msinput\ST_spectra_original.msalign", "utf-8")
-    out_file="C:\Users\Administrator\Desktop\msalign+\msinput\ST_spectra.msalign"
+    spectra_file=unicode("E:\\快盘\\研二文件\\模板\\data数据论文\\Human core histones\\2DLC_H2A_msdeconv.msalign", "utf-8")
+    out_file=unicode("E:\\快盘\\研二文件\\模板\\data数据论文\\Human core histones\\H2A_msdeconv.msalign", "utf-8")
     f = open(out_file, "w")
     spectra_number=0
     scans=0
@@ -60,7 +60,7 @@ def processSpectra():
     charge=0
     mass=0
     peaks=list()
-    for line in open(spectra_file,"r"):
+    for line in open(spectra_file):
         if line.strip().split("=")[0]=="SCANS":
             scans=line.strip().split("=")[1]
         elif line.strip().split("=")[0]=="ACTIVATION":
@@ -99,16 +99,6 @@ def processResult():
             up15_numbers+=1
     print "> 15 matched peaks number: ",up15_numbers
     print "matched target protein number:",matched_target_protein_nbumber
-def align2SVMFmat():
-    input_file_path = "C:\Users\Administrator\Desktop\msalign+\msinput\yeast-01.tab"
-    input_file = open(unicode(input_file_path, "utf-8"), "r")
-    output_file_path = "C:\Users\Administrator\Desktop\msalign+\msinput\yeast-01.scale"
-    output_file = file(unicode(output_file_path, "utf-8"), "w+")
-    for line in islice(input_file, 1, None):
-        tokens = line.strip().replace(" ", "\t").split("\t")
-        ###
-        output_file.write(new_line + "\n")
-    output_file.close
 
 if __name__ == "__main__":
     processSpectra()
