@@ -170,6 +170,7 @@ def libsvm(train_file,test_file):
     # print rate,param
     y_train_pre, x_train_pre = svm_read_problem(unicode(train_file, "utf-8"))  # 读取自带数据
     y_test, x_test = svm_read_problem(unicode(test_file, "utf-8"))
+    #20%的数据中随机取10%
     x_train, x_train_left, y_train, y_train_left = train_test_split(x_train_pre, y_train_pre, test_size=0.5, random_state=randint(1,1000))
     m = svm_train(y_train, x_train, '-c 1.0 -g 8.0 -b 1')
 
@@ -265,7 +266,7 @@ def repeatMethod(train_file,test_file,method):
     res_file.write( "the result:"+line+"\n")
 
 if __name__ == "__main__":
-   repeatMethod(fp.ST_file_out_evalue_train,fp.ST_file_out_evalue_test,"LR")
+   repeatMethod(fp.ST_file_out_evalue_train,fp.ST_file_out_evalue_test,"xgb")
    # p=[p1[i][0]+p2[i]+p3[i][0] for i in range(0,len(y1))]
     
     
